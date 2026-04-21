@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 
+const { connectDB } = require('./config/db');
+
 const authRoutes = require('./routes/auth');
 const roomsRoutes = require('./routes/rooms');
 const bookingsRoutes = require('./routes/bookings');
@@ -19,7 +21,7 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:3000',
-    /\.vercel\.app$/, // izinkan semua subdomain vercel
+    /\.vercel\.app$/,
   ],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -29,13 +31,12 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files (Images)
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 // =====================
 // ROUTES
 // =====================
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.json({
     message: '🏨 Hotel Citycome API - v1.0',
     status: 'running',
@@ -44,6 +45,8 @@ app.get('/', (req, res) => {
       rooms: '/api/rooms',
       bookings: '/api/bookings',
       dashboard: '/api/dashboard',
+      settings: '/api/settings',
+      upload: '/api/upload',
     },
   });
 });
@@ -55,25 +58,26 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// =====================
-// 404 HANDLER
-// =====================
-app.use((req, res) => {
+app.use((_req, res) => {
   res.status(404).json({ success: false, message: 'Endpoint tidak ditemukan.' });
 });
 
-// =====================
-// ERROR HANDLER
-// =====================
-app.use((err, req, res, next) => {
+app.use((err, _req, res, _next) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ success: false, message: 'Internal server error.' });
 });
 
-// =====================
-// START SERVER
-// =====================
-app.listen(PORT, () => {
-  console.log(`🚀 Hotel Citycome Backend running on port ${PORT}`);
-  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+async function start() {
+  try {
+    await connectDB();
+    app.listen(PORT, () => {
+      console.log(`🚀 Hotel Citycome Backend running on port ${PORT}`);
+      console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+    });
+  } catch (err) {
+    console.error('❌ Gagal start server:', err.message);
+    process.exit(1);
+  }
+}
+
+start();

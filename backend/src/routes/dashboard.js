@@ -1,53 +1,48 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../config/db');
+const Booking = require('../models/Booking');
+const Room = require('../models/Room');
 const { authenticateToken } = require('../middleware/auth');
 
 /**
  * GET /api/dashboard
- * Ambil statistik utama untuk dashboard admin
  */
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, async (_req, res) => {
   try {
-    // Total pendapatan dari pesanan yang lunas
-    const [[revenue]] = await db.query(
-      "SELECT COALESCE(SUM(total_price), 0) AS total FROM bookings WHERE status = 'paid'"
-    );
+    const revenueAgg = await Booking.aggregate([
+      { $match: { status: 'paid' } },
+      { $group: { _id: null, total: { $sum: '$total_price' } } },
+    ]);
+    const totalRevenue = revenueAgg[0]?.total || 0;
 
-    // Jumlah pesanan baru (pending)
-    const [[newOrders]] = await db.query(
-      "SELECT COUNT(*) AS count FROM bookings WHERE status = 'pending'"
-    );
+    const newOrders = await Booking.countDocuments({ status: 'pending' });
 
-    // Kamar tersedia vs total (menggunakan kolom total di DB)
-    const [[roomStats]] = await db.query(
-      'SELECT COUNT(*) AS room_count, COALESCE(SUM(total), 5) AS total_stok FROM rooms'
-    );
+    const roomTotals = await Room.aggregate([
+      { $group: { _id: null, room_count: { $sum: 1 }, total_stok: { $sum: '$total' } } },
+    ]);
+    const totalRooms = Number(roomTotals[0]?.total_stok) || 1;
 
-    // Tingkat okupansi
-    const [[ocupancy]] = await db.query(
-      "SELECT COUNT(*) AS active FROM bookings WHERE status IN ('pending', 'paid') AND check_out >= CURDATE()"
-    );
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const activeOccupancy = await Booking.countDocuments({
+      status: { $in: ['pending', 'paid'] },
+      check_out: { $gte: today },
+    });
 
-    // 5 pesanan terbaru
-    const [recentBookings] = await db.query(
-      'SELECT * FROM bookings ORDER BY created_at DESC LIMIT 5'
-    );
+    const recentBookings = await Booking.find().sort({ created_at: -1 }).limit(5);
 
-    const totalRooms = Number(roomStats.total_stok) || 1;
-    const activeOccupancy = Number(ocupancy.active) || 0;
-    const availableRooms = totalRooms - activeOccupancy; 
+    const availableRooms = totalRooms - activeOccupancy;
     const occupancyRate = Math.round((activeOccupancy / totalRooms) * 100);
 
     res.json({
       success: true,
       data: {
-        total_revenue: Number(revenue.total) || 0,
-        new_orders: Number(newOrders.count) || 0,
+        total_revenue: totalRevenue,
+        new_orders: newOrders,
         rooms_available: availableRooms,
         rooms_total: totalRooms,
         occupancy_rate: occupancyRate > 100 ? 100 : occupancyRate,
-        recent_bookings: recentBookings,
+        recent_bookings: recentBookings.map((b) => b.toJSON()),
       },
     });
   } catch (err) {

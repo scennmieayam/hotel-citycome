@@ -1,11 +1,12 @@
 {
   "name": "hotel-citycome-backend",
   "version": "1.0.0",
-  "description": "Backend API for Hotel Citycome - Express + MySQL",
+  "description": "Backend API for Hotel Citycome - Express + MongoDB",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "nodemon src/app.js"
+    "dev": "nodemon src/app.js",
+    "seed": "node src/scripts/seed.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -13,8 +14,8 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
-    "multer": "^2.1.1",
-    "mysql2": "^3.14.0"
+    "mongoose": "^8.8.4",
+    "multer": "^2.1.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

@@ -1,16 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../config/db');
+const Room = require('../models/Room');
 const { authenticateToken } = require('../middleware/auth');
 
 /**
- * GET /api/rooms
- * Ambil semua kamar (publik)
+ * GET /api/rooms — publik
  */
-router.get('/', async (req, res) => {
+router.get('/', async (_req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM rooms ORDER BY price ASC');
-    res.json({ success: true, data: rows });
+    const rooms = await Room.find().sort({ price: 1 });
+    res.json({ success: true, data: rooms.map((r) => r.toJSON()) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Server error.' });
@@ -18,16 +17,15 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * GET /api/rooms/:id
- * Ambil detail satu kamar (publik)
+ * GET /api/rooms/:id — publik
  */
 router.get('/:id', async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM rooms WHERE id = ?', [req.params.id]);
-    if (rows.length === 0) {
+    const room = await Room.findById(req.params.id);
+    if (!room) {
       return res.status(404).json({ success: false, message: 'Kamar tidak ditemukan.' });
     }
-    res.json({ success: true, data: rows[0] });
+    res.json({ success: true, data: room.toJSON() });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Server error.' });
@@ -35,23 +33,33 @@ router.get('/:id', async (req, res) => {
 });
 
 /**
- * POST /api/rooms
- * Tambah kamar baru (admin only)
+ * POST /api/rooms — admin only
  */
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const { id, name, description, price, image_url, features, available, total } = req.body;
-    if (!id || !name || !price) {
+    if (!id || !name || price === undefined) {
       return res.status(400).json({ success: false, message: 'id, name, dan price wajib diisi.' });
     }
-    const featuresJson = JSON.stringify(features || []);
-    const roomTotal = total !== undefined ? parseInt(total, 10) : 5;
-    
-    await db.query(
-      'INSERT INTO rooms (id, name, description, price, image_url, features, available, total) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [id, name, description, price, image_url, featuresJson, available !== false, roomTotal]
-    );
-    res.status(201).json({ success: true, message: 'Kamar berhasil ditambahkan.' });
+
+    const exists = await Room.findById(id);
+    if (exists) {
+      return res.status(409).json({ success: false, message: 'ID kamar sudah dipakai.' });
+    }
+
+    const room = await Room.create({
+      _id: id,
+      name,
+      description: description || '',
+      price: Number(price),
+      image_url: image_url || '',
+      features: Array.isArray(features) ? features : [],
+      available: available !== false,
+      total: total !== undefined ? Number(total) : 5,
+      booked: 0,
+    });
+
+    res.status(201).json({ success: true, message: 'Kamar berhasil ditambahkan.', data: room.toJSON() });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Server error.' });
@@ -59,27 +67,26 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 /**
- * PUT /api/rooms/:id
- * Update kamar (admin only)
+ * PUT /api/rooms/:id — admin only
  */
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { name, description, price, image_url, features, available, total } = req.body;
-    const featuresJson = features ? JSON.stringify(features) : undefined;
-    
-    await db.query(
-      `UPDATE rooms SET 
-        name = COALESCE(?, name),
-        description = COALESCE(?, description),
-        price = COALESCE(?, price),
-        image_url = COALESCE(?, image_url),
-        features = COALESCE(?, features),
-        available = COALESCE(?, available),
-        total = COALESCE(?, total)
-      WHERE id = ?`,
-      [name, description, price, image_url, featuresJson, available, total, req.params.id]
-    );
-    res.json({ success: true, message: 'Kamar berhasil diupdate.' });
+
+    const update = {};
+    if (name !== undefined) update.name = name;
+    if (description !== undefined) update.description = description;
+    if (price !== undefined) update.price = Number(price);
+    if (image_url !== undefined) update.image_url = image_url;
+    if (features !== undefined) update.features = Array.isArray(features) ? features : [];
+    if (available !== undefined) update.available = Boolean(Number(available));
+    if (total !== undefined) update.total = Number(total);
+
+    const room = await Room.findByIdAndUpdate(req.params.id, update, { new: true });
+    if (!room) {
+      return res.status(404).json({ success: false, message: 'Kamar tidak ditemukan.' });
+    }
+    res.json({ success: true, message: 'Kamar berhasil diupdate.', data: room.toJSON() });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Server error.' });
@@ -87,12 +94,14 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 /**
- * DELETE /api/rooms/:id
- * Hapus kamar (admin only)
+ * DELETE /api/rooms/:id — admin only
  */
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
-    await db.query('DELETE FROM rooms WHERE id = ?', [req.params.id]);
+    const room = await Room.findByIdAndDelete(req.params.id);
+    if (!room) {
+      return res.status(404).json({ success: false, message: 'Kamar tidak ditemukan.' });
+    }
     res.json({ success: true, message: 'Kamar berhasil dihapus.' });
   } catch (err) {
     console.error(err);

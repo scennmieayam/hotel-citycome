@@ -1,33 +1,55 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../config/db');
+const Booking = require('../models/Booking');
 const { authenticateToken } = require('../middleware/auth');
 
+function last8Digits(str = '') {
+  return String(str).replace(/\D/g, '').slice(-8);
+}
+
 /**
- * POST /api/bookings
- * Buat pesanan baru (publik — dari form booking tamu)
+ * POST /api/bookings — publik
  */
 router.post('/', async (req, res) => {
   try {
-    const { guest_name, guest_email, guest_phone, room_id, room_type, check_in, check_out, total_price, notes } = req.body;
+    const {
+      guest_name, guest_email, guest_phone,
+      room_id, room_type, check_in, check_out,
+      total_price, notes,
+    } = req.body;
 
     if (!guest_name || !guest_phone || !room_id || !check_in || !check_out) {
       return res.status(400).json({ success: false, message: 'Data pemesanan tidak lengkap.' });
     }
 
-    // Generate booking ID: BK-XXXXX
-    const bookingId = 'BK-' + Math.floor(10000 + Math.random() * 90000);
+    let bookingId;
+    for (let i = 0; i < 5; i++) {
+      const candidate = 'BK-' + Math.floor(10000 + Math.random() * 90000);
+      const exists = await Booking.exists({ _id: candidate });
+      if (!exists) { bookingId = candidate; break; }
+    }
+    if (!bookingId) {
+      return res.status(500).json({ success: false, message: 'Gagal generate booking ID.' });
+    }
 
-    await db.query(
-      `INSERT INTO bookings (id, guest_name, guest_email, guest_phone, room_id, room_type, check_in, check_out, total_price, notes, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
-      [bookingId, guest_name, guest_email, guest_phone, room_id, room_type, check_in, check_out, total_price, notes]
-    );
+    const booking = await Booking.create({
+      _id: bookingId,
+      guest_name,
+      guest_email: guest_email || '',
+      guest_phone,
+      room_id,
+      room_type: room_type || '',
+      check_in: new Date(check_in),
+      check_out: new Date(check_out),
+      total_price: Number(total_price) || 0,
+      notes: notes || '',
+      status: 'pending',
+    });
 
     res.status(201).json({
       success: true,
       message: 'Pesanan berhasil dibuat.',
-      data: { booking_id: bookingId },
+      data: { booking_id: booking._id },
     });
   } catch (err) {
     console.error(err);
@@ -36,27 +58,25 @@ router.post('/', async (req, res) => {
 });
 
 /**
- * GET /api/bookings/check
- * Cek status pesanan berdasarkan ID dan nomor WA (publik)
+ * GET /api/bookings/check — publik
  */
 router.get('/check', async (req, res) => {
   try {
     const { booking_id, whatsapp } = req.query;
-
     if (!booking_id || !whatsapp) {
       return res.status(400).json({ success: false, message: 'booking_id dan whatsapp wajib diisi.' });
     }
 
-    const [rows] = await db.query(
-      'SELECT * FROM bookings WHERE id = ? AND guest_phone LIKE ?',
-      [booking_id.toUpperCase(), `%${whatsapp.replace(/\D/g, '').slice(-8)}%`]
-    );
+    const digits = last8Digits(whatsapp);
+    const booking = await Booking.findOne({
+      _id: booking_id.toUpperCase(),
+      guest_phone: { $regex: digits, $options: 'i' },
+    });
 
-    if (rows.length === 0) {
+    if (!booking) {
       return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan.' });
     }
-
-    res.json({ success: true, data: rows[0] });
+    res.json({ success: true, data: booking.toJSON() });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Server error.' });
@@ -64,8 +84,7 @@ router.get('/check', async (req, res) => {
 });
 
 /**
- * POST /api/bookings/cancel_request
- * Meminta pembatalan pesanan dari sisi tamu (publik)
+ * POST /api/bookings/cancel_request — publik
  */
 router.post('/cancel_request', async (req, res) => {
   try {
@@ -74,21 +93,21 @@ router.post('/cancel_request', async (req, res) => {
       return res.status(400).json({ success: false, message: 'ID Booking dan WhatsApp wajib diisi.' });
     }
 
-    const [rows] = await db.query(
-      'SELECT * FROM bookings WHERE id = ? AND guest_phone LIKE ?',
-      [booking_id.toUpperCase(), `%${whatsapp.replace(/\D/g, '').slice(-8)}%`]
-    );
+    const digits = last8Digits(whatsapp);
+    const booking = await Booking.findOne({
+      _id: booking_id.toUpperCase(),
+      guest_phone: { $regex: digits, $options: 'i' },
+    });
 
-    if (rows.length === 0) {
+    if (!booking) {
       return res.status(404).json({ success: false, message: 'Data validasi tidak cocok atau pesanan tidak ditemukan.' });
     }
-
-    // Jika sudah lunas atau ditolak tidak bisa di minta batal secara langsung
-    if (rows[0].status === 'rejected') {
+    if (booking.status === 'rejected') {
       return res.status(400).json({ success: false, message: 'Pesanan sudah dibatalkan sebelumnya.' });
     }
 
-    await db.query('UPDATE bookings SET status = ? WHERE id = ?', ['request_cancel', booking_id.toUpperCase()]);
+    booking.status = 'request_cancel';
+    await booking.save();
     res.json({ success: true, message: 'Permintaan pembatalan berhasil diajukan ke admin.' });
   } catch (err) {
     console.error(err);
@@ -97,13 +116,12 @@ router.post('/cancel_request', async (req, res) => {
 });
 
 /**
- * GET /api/bookings
- * Ambil semua pesanan (admin only)
+ * GET /api/bookings — admin only
  */
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, async (_req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM bookings ORDER BY created_at DESC');
-    res.json({ success: true, data: rows });
+    const bookings = await Booking.find().sort({ created_at: -1 });
+    res.json({ success: true, data: bookings.map((b) => b.toJSON()) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Server error.' });
@@ -111,16 +129,15 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 /**
- * GET /api/bookings/:id
- * Ambil detail pesanan (admin only)
+ * GET /api/bookings/:id — admin only
  */
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
-    if (rows.length === 0) {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) {
       return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan.' });
     }
-    res.json({ success: true, data: rows[0] });
+    res.json({ success: true, data: booking.toJSON() });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Server error.' });
@@ -128,19 +145,20 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 /**
- * PATCH /api/bookings/:id/status
- * Update status pesanan: pending | paid | rejected | request_cancel (admin only)
+ * PATCH /api/bookings/:id/status — admin only
  */
 router.patch('/:id/status', authenticateToken, async (req, res) => {
   try {
     const { status } = req.body;
     const validStatuses = ['pending', 'paid', 'rejected', 'request_cancel'];
-
     if (!validStatuses.includes(status)) {
-      return res.status(400).json({ success: false, message: 'Status tidak valid. Gunakan: pending, paid, rejected, request_cancel.' });
+      return res.status(400).json({ success: false, message: 'Status tidak valid.' });
     }
 
-    await db.query('UPDATE bookings SET status = ? WHERE id = ?', [status, req.params.id]);
+    const booking = await Booking.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan.' });
+    }
     res.json({ success: true, message: `Status pesanan berhasil diubah ke "${status}".` });
   } catch (err) {
     console.error(err);
@@ -149,12 +167,14 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
 });
 
 /**
- * DELETE /api/bookings/:id
- * Hapus pesanan (admin only)
+ * DELETE /api/bookings/:id — admin only
  */
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
-    await db.query('DELETE FROM bookings WHERE id = ?', [req.params.id]);
+    const booking = await Booking.findByIdAndDelete(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan.' });
+    }
     res.json({ success: true, message: 'Pesanan berhasil dihapus.' });
   } catch (err) {
     console.error(err);

@@ -1,20 +1,42 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Hotel Citycome
 
-# Run and deploy your AI Studio app
+Project ini sekarang menggunakan struktur monorepo sederhana:
 
-This contains everything you need to run your app locally.
+- `frontend/` -> Next.js app (deploy ke Vercel)
+- `backend/` -> Express API (deploy ke Railway)
 
-View your app in AI Studio: https://ai.studio/apps/74a3b0c6-64a3-4b8a-a990-b15618983582
+## Jalankan di Linux (local)
 
-## Run Locally
+Prasyarat:
+- Node.js 18+
+- npm
+- MySQL berjalan di local atau server
 
-**Prerequisites:**  Node.js
+### 1) Jalankan backend
 
+```bash
+cd backend
+npm install
+cp .env.example .env
+npm run dev
+```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### 2) Jalankan frontend
+
+Buka terminal baru:
+
+```bash
+cd frontend
+npm install
+cp .env.example .env.local
+npm run dev
+```
+
+Frontend biasanya jalan di `http://localhost:3000`.
+
+## Deploy (recommended)
+
+- Frontend: Vercel (root directory: `frontend`)
+- Backend: Railway (root directory: `backend`)
+
+Pastikan URL API di frontend diarahkan ke domain backend production.
