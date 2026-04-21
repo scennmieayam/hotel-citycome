@@ -22,11 +22,15 @@ export default function AdminLogin() {
         body: JSON.stringify({ username, password })
       });
       
-      if (res.success) {
+      if (res.success && res.token) {
         // Simpan token JWT di cookie (berlaku di seluruh situs /)
-        document.cookie = `admin_token=${res.token}; path=/; max-age=28800;`; // 8 jam
-        router.push("/admin");
+        const isHttps = typeof window !== "undefined" && window.location.protocol === "https:";
+        document.cookie = `admin_token=${res.token}; path=/; max-age=28800; samesite=lax;${isHttps ? " secure;" : ""}`; // 8 jam
+        window.location.href = "/admin";
+        return;
       }
+
+      setError(res.message || 'Gagal login. Kredensial tidak valid.');
     } catch (err) {
       setError(err.message || 'Gagal login. Kredensial tidak valid.');
     } finally {
