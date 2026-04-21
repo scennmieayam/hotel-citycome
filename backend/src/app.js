@@ -13,14 +13,20 @@ const settingsRoutes = require('./routes/settings');
 const uploadRoutes = require('./routes/upload');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT) || 5000;
+const configuredFrontendUrl = process.env.FRONTEND_URL || '';
+const allowedOrigins = configuredFrontendUrl
+  .split(',')
+  .map((item) => item.trim())
+  .filter(Boolean);
 
 // =====================
 // MIDDLEWARE
 // =====================
 app.use(cors({
   origin: [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
+    ...allowedOrigins,
+    'http://localhost:3000',
     /\.vercel\.app$/,
   ],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -69,6 +75,9 @@ app.use((err, _req, res, _next) => {
 
 async function start() {
   try {
+    if (!configuredFrontendUrl) {
+      console.warn('⚠️ FRONTEND_URL belum diset, fallback ke localhost dan *.vercel.app');
+    }
     await connectDB();
     app.listen(PORT, () => {
       console.log(`🚀 Hotel Citycome Backend running on port ${PORT}`);
