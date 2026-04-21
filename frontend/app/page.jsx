@@ -29,7 +29,7 @@ export default async function Home() {
       <main className="flex-grow">
         {/* HERO SECTION */}
         <section className="relative h-screen flex items-center justify-center pt-20 px-4 md:px-8 pb-4">
-          <div className="relative w-full h-full rounded-[32px] overflow-hidden shadow-sm border border-black/5 flex items-end justify-center pb-24 md:pb-32">
+          <div className="relative w-full h-full rounded-[32px] overflow-hidden shadow-sm border border-black/5">
             <Image
               src="https://picsum.photos/seed/hotelhero/1920/1080?blur=2"
               alt="Hotel Citycome Hero"
@@ -40,7 +40,8 @@ export default async function Home() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-10"></div>
 
-            <div className="relative z-20 text-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto mt-16">
+            <div className="relative z-20 h-full w-full flex items-center justify-center">
+              <div className="text-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
               <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl text-white font-bold leading-tight mb-6">
                 Simfoni <br className="hidden md:block" /> Kenyamanan
               </h1>
@@ -60,6 +61,7 @@ export default async function Home() {
                 >
                   Jelajahi Kamar
                 </Link>
+              </div>
               </div>
             </div>
           </div>
