@@ -42,10 +42,6 @@ export default function AdminLanding() {
   const [isUploadingHero, setIsUploadingHero] = useState(false);
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
   const loadSettings = async () => {
     try {
       const res = await fetchApi("/settings");
@@ -82,6 +78,10 @@ export default function AdminLanding() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
 
   const uploadFile = async (file) => {
     const formUpload = new FormData();

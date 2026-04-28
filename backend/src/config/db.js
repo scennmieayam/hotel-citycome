@@ -28,7 +28,7 @@ async function connectDB() {
     throw err;
   }
 
-  console.log('✅ MongoDB terhubung:', mongoose.connection.name);
+  console.log('MongoDB terhubung:', mongoose.connection.name);
 }
 
 module.exports = { connectDB, mongoose };
