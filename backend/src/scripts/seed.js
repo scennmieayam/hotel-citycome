@@ -15,6 +15,10 @@ const ROOMS = [
     price: 450000,
     image_url: 'https://picsum.photos/seed/standard/800/600',
     features: ['Tempat Tidur Queen', 'Wi-Fi Gratis', 'Pemandangan Kota', 'TV Layar Datar 42 Inch'],
+    gallery_urls: [
+      'https://www.ketapangindahhotel.com/storage/app/uploads/public/5d1/a16/bf7/5d1a16bf71e05223571642.jpg',
+      'https://www.ketapangindahhotel.com/storage/app/uploads/public/5d1/a16/b21/5d1a16b216a14097469197.jpg',
+    ],
     available: true, total: 10, booked: 3,
   },
   {
@@ -24,6 +28,10 @@ const ROOMS = [
     price: 650000,
     image_url: 'https://picsum.photos/seed/deluxe/800/600',
     features: ['Tempat Tidur King', 'Mini Bar', 'Pemandangan Kota', 'Mesin Kopi'],
+    gallery_urls: [
+      'https://www.ketapangindahhotel.com/storage/app/uploads/public/5d1/a16/bf7/5d1a16bf71e05223571642.jpg',
+      'https://www.ketapangindahhotel.com/storage/app/uploads/public/5d1/a16/b21/5d1a16b216a14097469197.jpg',
+    ],
     available: true, total: 8, booked: 5,
   },
   {
@@ -33,6 +41,10 @@ const ROOMS = [
     price: 1200000,
     image_url: 'https://picsum.photos/seed/executive/800/600',
     features: ['Tempat Tidur King', 'Ruang Tamu', 'Akses Lounge'],
+    gallery_urls: [
+      'https://www.ketapangindahhotel.com/storage/app/uploads/public/5d1/a16/bf7/5d1a16bf71e05223571642.jpg',
+      'https://www.ketapangindahhotel.com/storage/app/uploads/public/5d1/a16/b21/5d1a16b216a14097469197.jpg',
+    ],
     available: false, total: 4, booked: 4,
   },
   {
@@ -42,6 +54,10 @@ const ROOMS = [
     price: 1500000,
     image_url: 'https://picsum.photos/seed/family/800/600',
     features: ['2 Tempat Tidur Queen', 'Ruang Makan', 'Bathtub'],
+    gallery_urls: [
+      'https://www.ketapangindahhotel.com/storage/app/uploads/public/5d1/a16/bf7/5d1a16bf71e05223571642.jpg',
+      'https://www.ketapangindahhotel.com/storage/app/uploads/public/5d1/a16/b21/5d1a16b216a14097469197.jpg',
+    ],
     available: true, total: 2, booked: 0,
   },
   {
@@ -51,6 +67,10 @@ const ROOMS = [
     price: 3500000,
     image_url: 'https://picsum.photos/seed/presidential/800/600',
     features: ['Tempat Tidur King', 'Jacuzzi', 'Butler Service', 'Ruang VIP'],
+    gallery_urls: [
+      'https://www.ketapangindahhotel.com/storage/app/uploads/public/5d1/a16/bf7/5d1a16bf71e05223571642.jpg',
+      'https://www.ketapangindahhotel.com/storage/app/uploads/public/5d1/a16/b21/5d1a16b216a14097469197.jpg',
+    ],
     available: false, total: 1, booked: 0,
   },
 ];

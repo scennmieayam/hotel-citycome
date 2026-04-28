@@ -8,6 +8,7 @@ const roomSchema = new mongoose.Schema(
     price: { type: Number, required: true },
     image_url: { type: String, default: '' },
     features: { type: [String], default: [] },
+    gallery_urls: { type: [String], default: [] },
     available: { type: Boolean, default: true },
     total: { type: Number, default: 1 },
     booked: { type: Number, default: 0 },

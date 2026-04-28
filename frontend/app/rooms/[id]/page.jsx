@@ -2,13 +2,23 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { BookingForm } from "@/components/BookingForm";
 import Image from "next/image";
-import { Wifi, Tv, Wind, Check, ArrowLeft } from "lucide-react";
+import { Check, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { API_URL } from "@/lib/api";
 
 export default async function RoomDetail({ params }) {
   const resolvedParams = await params;
   const roomId = resolvedParams.id;
+  const normalizeArray = (value) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value !== "string") return [];
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
 
   let room = null;
   try {
@@ -16,17 +26,16 @@ export default async function RoomDetail({ params }) {
     const data = await res.json();
     if (data.success && data.data) {
       room = data.data;
-      room.features = typeof room.features === 'string' ? JSON.parse(room.features) : (room.features || []);
-      // Mengisi field tambahan yang tidak ada di DB tapi dibutuhkan oleh UI
-      room.gallery = [
-        "https://www.ketapangindahhotel.com/storage/app/uploads/public/5d1/a16/bf7/5d1a16bf71e05223571642.jpg",
-        "https://www.ketapangindahhotel.com/storage/app/uploads/public/5d1/a16/b21/5d1a16b216a14097469197.jpg",
-      ];
+      room.features = normalizeArray(room.features);
+      room.gallery_urls = normalizeArray(room.gallery_urls);
       room.size = roomId === 'family' || roomId === 'presidential' ? "50+ m²" : "24-32 m²";
       room.occupancy = roomId === 'family' || roomId === 'presidential' ? "Keluarga/Grup" : "1-2 Dewasa";
       room.image =
         room.image_url ||
         "https://www.ketapangindahhotel.com/storage/app/uploads/public/5d1/a16/bf7/5d1a16bf71e05223571642.jpg";
+      room.gallery = room.gallery_urls.length > 0
+        ? room.gallery_urls
+        : [room.image, room.image];
     }
   } catch (err) {
     console.error("Gagal mengambil detail kamar:", err);
@@ -91,7 +100,7 @@ export default async function RoomDetail({ params }) {
                 </div>
                 <div>
                   <p className="text-[10px] uppercase font-bold tracking-widest text-gray-400 mb-1">Ranjang</p>
-                  <p className="font-bold text-[#2d2d2a]">{room.features[0]}</p>
+                  <p className="font-bold text-[#2d2d2a]">{room.features[0] || "-"}</p>
                 </div>
               </div>
 
@@ -104,14 +113,6 @@ export default async function RoomDetail({ params }) {
                       {feature}
                     </div>
                   ))}
-                  <div className="flex items-center text-sm text-[#2d2d2a]">
-                    <Check className="w-4 h-4 text-[#5A5A40] mr-3" />
-                    Penyejuk Udara (AC)
-                  </div>
-                  <div className="flex items-center text-sm text-[#2d2d2a]">
-                    <Check className="w-4 h-4 text-[#5A5A40] mr-3" />
-                    Brankas Eksekutif
-                  </div>
                 </div>
               </div>
 

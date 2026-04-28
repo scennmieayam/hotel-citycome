@@ -12,7 +12,6 @@ export default async function Home() {
     const res = await fetch(`${API_URL}/rooms`, { cache: 'no-store' });
     const data = await res.json();
     if (data.success) {
-      // Pastikan data features dalam format JSON array yang diparse dengan benar
       rooms = data.data.map(room => ({
         ...room,
         features: typeof room.features === 'string' ? JSON.parse(room.features) : (room.features || [])

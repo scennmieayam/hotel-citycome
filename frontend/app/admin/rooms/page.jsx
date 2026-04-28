@@ -10,8 +10,10 @@ export default function AdminRooms() {
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingGallery, setIsUploadingGallery] = useState(false);
+  const [galleryUrlInput, setGalleryUrlInput] = useState("");
   const [formData, setFormData] = useState({
-    id: "", name: "", description: "", price: 0, image_url: "", features: "", total: 5
+    id: "", name: "", description: "", price: 0, image_url: "", features: "", gallery_urls: [], total: 5
   });
 
   useEffect(() => {
@@ -48,7 +50,10 @@ export default function AdminRooms() {
         ...formData,
         price: Number(formData.price),
         total: Number(formData.total),
-        features: formData.features ? formData.features.split(',').map(s=>s.trim()) : []
+        features: formData.features ? formData.features.split(',').map((s) => s.trim()).filter(Boolean) : [],
+        gallery_urls: Array.isArray(formData.gallery_urls)
+          ? formData.gallery_urls.filter(Boolean)
+          : []
       };
       
       const url = isEditing ? `/rooms/${formData.id}` : '/rooms';
@@ -77,25 +82,28 @@ export default function AdminRooms() {
     }
   };
 
+  const uploadFile = async (file) => {
+    const formUpload = new FormData();
+    formUpload.append('image', file);
+    const token = document.cookie.split('; ').find(row => row.startsWith('admin_token=')).split('=')[1];
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+    const res = await fetch(`${apiUrl}/upload`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formUpload
+    });
+    return res.json();
+  };
+
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     setIsUploading(true);
-    const formUpload = new FormData();
-    formUpload.append('image', file);
-
     try {
-      const token = document.cookie.split('; ').find(row => row.startsWith('admin_token=')).split('=')[1];
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-      const res = await fetch(`${apiUrl}/upload`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formUpload
-      });
-      const data = await res.json();
+      const data = await uploadFile(file);
       if (data.success) {
-        setFormData({ ...formData, image_url: data.image_url });
+        setFormData((prev) => ({ ...prev, image_url: data.image_url }));
       } else {
         alert(data.message || 'Gagal upload foto.');
       }
@@ -104,21 +112,86 @@ export default function AdminRooms() {
       alert('Error upload sistem.');
     } finally {
       setIsUploading(false);
+      e.target.value = "";
     }
+  };
+
+  const handleGalleryUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setIsUploadingGallery(true);
+    try {
+      const uploaded = [];
+      for (const file of files) {
+        const data = await uploadFile(file);
+        if (data.success) {
+          uploaded.push(data.image_url);
+        } else {
+          alert(data.message || 'Gagal upload salah satu foto galeri.');
+        }
+      }
+      if (uploaded.length > 0) {
+        setFormData((prev) => ({
+          ...prev,
+          gallery_urls: [...(prev.gallery_urls || []), ...uploaded]
+        }));
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error upload sistem.');
+    } finally {
+      setIsUploadingGallery(false);
+      e.target.value = "";
+    }
+  };
+
+  const addGalleryUrl = () => {
+    const url = galleryUrlInput.trim();
+    if (!url) return;
+    setFormData((prev) => ({
+      ...prev,
+      gallery_urls: [...(prev.gallery_urls || []), url]
+    }));
+    setGalleryUrlInput("");
+  };
+
+  const removeGalleryUrl = (idx) => {
+    setFormData((prev) => ({
+      ...prev,
+      gallery_urls: (prev.gallery_urls || []).filter((_, i) => i !== idx)
+    }));
   };
 
   const openAddModal = () => {
     setIsEditing(false);
-    setFormData({ id: "", name: "", description: "", price: 0, image_url: "", features: "", total: 5 });
+    setGalleryUrlInput("");
+    setFormData({
+      id: "",
+      name: "",
+      description: "",
+      price: 0,
+      image_url: "",
+      features: "",
+      gallery_urls: [],
+      total: 5
+    });
     setShowModal(true);
   };
 
   const openEditModal = (room) => {
     setIsEditing(true);
+    setGalleryUrlInput("");
     let parsedFeatures = "";
     try {
       const f = typeof room.features === 'string' ? JSON.parse(room.features) : room.features;
       parsedFeatures = Array.isArray(f) ? f.join(', ') : "";
+    } catch(e){}
+
+    let parsedGalleryUrls = [];
+    try {
+      const g = typeof room.gallery_urls === 'string' ? JSON.parse(room.gallery_urls) : room.gallery_urls;
+      parsedGalleryUrls = Array.isArray(g) ? g : [];
     } catch(e){}
     
     setFormData({
@@ -128,6 +201,7 @@ export default function AdminRooms() {
       price: room.price || 0,
       image_url: room.image_url || "",
       features: parsedFeatures,
+      gallery_urls: parsedGalleryUrls,
       total: room.total || 5
     });
     setShowModal(true);
@@ -252,6 +326,64 @@ export default function AdminRooms() {
               <div>
                 <label className="text-[10px] uppercase font-bold tracking-wider text-gray-400 mb-1 block">Fasilitas (pisahkan dengan koma)</label>
                 <input value={formData.features} onChange={e=>setFormData({...formData, features: e.target.value})} className="w-full bg-[#f5f5f0] border-transparent rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#5A5A40] outline-none" placeholder="TV Pintar, AC, WiFi, Bathtube" />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase font-bold tracking-wider text-gray-400 mb-2 block">Foto Galeri Detail (Upload atau Link)</label>
+
+                {formData.gallery_urls.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    {formData.gallery_urls.map((url, idx) => (
+                      <div key={`${url}-${idx}`} className="relative aspect-square rounded-xl overflow-hidden bg-[#f5f5f0] group">
+                        <Image src={url} alt={`Galeri ${idx + 1}`} fill className="object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeGalleryUrl(idx)}
+                          className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label="Hapus foto"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={galleryUrlInput}
+                      onChange={e => setGalleryUrlInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          addGalleryUrl();
+                        }
+                      }}
+                      className="flex-1 bg-[#f5f5f0] border-transparent rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#5A5A40] outline-none"
+                      placeholder="https://image-url.jpg"
+                    />
+                    <button
+                      type="button"
+                      onClick={addGalleryUrl}
+                      className="bg-[#5A5A40] text-white px-4 rounded-xl text-[10px] font-bold tracking-widest uppercase hover:bg-black transition-colors"
+                    >
+                      Tambah
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-4 bg-gray-50 border border-dashed border-gray-300 p-2 rounded-xl">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-2">Atau Upload:</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleGalleryUpload}
+                      className="flex-1 text-gray-500 file:mr-4 file:py-1.5 file:px-4 file:rounded-xl file:border-0 file:text-[10px] file:uppercase file:font-bold file:tracking-widest file:bg-[#5A5A40] file:text-white hover:file:bg-black transition-colors"
+                      disabled={isUploadingGallery}
+                    />
+                    {isUploadingGallery && <span className="text-[10px] uppercase font-bold text-[#5A5A40] pr-2">Loading...</span>}
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="text-[10px] uppercase font-bold tracking-wider text-gray-400 mb-1 block">Deskripsi Detail</label>

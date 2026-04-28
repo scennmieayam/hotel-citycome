@@ -37,7 +37,7 @@ router.get('/:id', async (req, res) => {
  */
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const { id, name, description, price, image_url, features, available, total } = req.body;
+    const { id, name, description, price, image_url, features, gallery_urls, available, total } = req.body;
     if (!id || !name || price === undefined) {
       return res.status(400).json({ success: false, message: 'id, name, dan price wajib diisi.' });
     }
@@ -54,6 +54,7 @@ router.post('/', authenticateToken, async (req, res) => {
       price: Number(price),
       image_url: image_url || '',
       features: Array.isArray(features) ? features : [],
+      gallery_urls: Array.isArray(gallery_urls) ? gallery_urls : [],
       available: available !== false,
       total: total !== undefined ? Number(total) : 5,
       booked: 0,
@@ -71,7 +72,7 @@ router.post('/', authenticateToken, async (req, res) => {
  */
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
-    const { name, description, price, image_url, features, available, total } = req.body;
+    const { name, description, price, image_url, features, gallery_urls, available, total } = req.body;
 
     const update = {};
     if (name !== undefined) update.name = name;
@@ -79,6 +80,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     if (price !== undefined) update.price = Number(price);
     if (image_url !== undefined) update.image_url = image_url;
     if (features !== undefined) update.features = Array.isArray(features) ? features : [];
+    if (gallery_urls !== undefined) update.gallery_urls = Array.isArray(gallery_urls) ? gallery_urls : [];
     if (available !== undefined) update.available = Boolean(Number(available));
     if (total !== undefined) update.total = Number(total);
 
