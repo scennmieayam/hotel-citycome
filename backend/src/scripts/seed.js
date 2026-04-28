@@ -101,6 +101,23 @@ const SETTINGS = [
   { setting_key: 'hotel_phone', setting_value: '+62 000-0000-0000' },
   { setting_key: 'hotel_email', setting_value: 'info@citycome.com' },
   { setting_key: 'hotel_address', setting_value: 'Jakarta, Indonesia' },
+  { setting_key: 'landing_hero_image_url', setting_value: 'https://picsum.photos/seed/hotelhero/1920/1080?blur=2' },
+  { setting_key: 'landing_hero_title', setting_value: 'Simfoni Kenyamanan' },
+  { setting_key: 'landing_hero_description', setting_value: 'Rasakan kemuliaan dan ketenangan yang tak tertandingi di Hotel Citycome. Liburan sempurna Anda dimulai di sini.' },
+  { setting_key: 'landing_hero_cta_primary_text', setting_value: 'Pesan Kamar' },
+  { setting_key: 'landing_hero_cta_secondary_text', setting_value: 'Jelajahi Kamar' },
+  { setting_key: 'landing_gallery_title', setting_value: 'Galeri Kami' },
+  { setting_key: 'landing_gallery_subtitle', setting_value: 'Intip sekilas keindahan dan kenyamanan yang menanti Anda di Hotel Citycome.' },
+  {
+    setting_key: 'landing_gallery_images',
+    setting_value: JSON.stringify([
+      'https://picsum.photos/seed/gallery1/800/800',
+      'https://picsum.photos/seed/gallery2/400/400',
+      'https://picsum.photos/seed/gallery3/400/400',
+      'https://picsum.photos/seed/gallery4/400/400',
+      'https://picsum.photos/seed/gallery5/400/400',
+    ]),
+  },
 ];
 
 async function main() {

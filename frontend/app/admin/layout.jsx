@@ -8,7 +8,8 @@ import {
   Settings,
   LogOut,
   Menu,
-  X
+  X,
+  LayoutTemplate,
 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -28,6 +29,7 @@ export default function AdminLayout({ children }) {
     { name: "Dashboard", icon: LayoutDashboard, href: "/admin" },
     { name: "Pesanan", icon: ClipboardList, href: "/admin/orders" },
     { name: "Manajemen Kamar", icon: Bed, href: "/admin/rooms" },
+    { name: "Konten Landing", icon: LayoutTemplate, href: "/admin/landing" },
     { name: "Pengaturan", icon: Settings, href: "/admin/settings" },
   ];
 

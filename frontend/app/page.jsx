@@ -6,19 +6,72 @@ import Link from "next/link";
 import { ArrowRight, Wifi, Coffee, MapPin, Wind } from "lucide-react";
 import { API_URL } from "@/lib/api";
 
+const FALLBACK_HERO = {
+  image_url: "https://picsum.photos/seed/hotelhero/1920/1080?blur=2",
+  title: "Simfoni Kenyamanan",
+  description:
+    "Rasakan kemuliaan dan ketenangan yang tak tertandingi di Hotel Citycome. Liburan sempurna Anda dimulai di sini.",
+  cta_primary: "Pesan Kamar",
+  cta_secondary: "Jelajahi Kamar",
+};
+
+const FALLBACK_GALLERY = {
+  title: "Galeri Kami",
+  subtitle: "Intip sekilas keindahan dan kenyamanan yang menanti Anda di Hotel Citycome.",
+  images: [
+    "https://picsum.photos/seed/gallery1/800/800",
+    "https://picsum.photos/seed/gallery2/400/400",
+    "https://picsum.photos/seed/gallery3/400/400",
+    "https://picsum.photos/seed/gallery4/400/400",
+    "https://picsum.photos/seed/gallery5/400/400",
+  ],
+};
+
 export default async function Home() {
   let rooms = [];
+  let hero = { ...FALLBACK_HERO };
+  let gallery = { ...FALLBACK_GALLERY };
+
   try {
-    const res = await fetch(`${API_URL}/rooms`, { cache: 'no-store' });
-    const data = await res.json();
-    if (data.success) {
-      rooms = data.data.map(room => ({
+    const [resRooms, resSettings] = await Promise.all([
+      fetch(`${API_URL}/rooms`, { cache: 'no-store' }),
+      fetch(`${API_URL}/settings`, { cache: 'no-store' }),
+    ]);
+
+    const dataRooms = await resRooms.json();
+    if (dataRooms.success) {
+      rooms = dataRooms.data.map(room => ({
         ...room,
         features: typeof room.features === 'string' ? JSON.parse(room.features) : (room.features || [])
       }));
     }
+
+    const dataSettings = await resSettings.json();
+    if (dataSettings.success) {
+      const s = dataSettings.data;
+      hero = {
+        image_url: s.landing_hero_image_url || FALLBACK_HERO.image_url,
+        title: s.landing_hero_title || FALLBACK_HERO.title,
+        description: s.landing_hero_description || FALLBACK_HERO.description,
+        cta_primary: s.landing_hero_cta_primary_text || FALLBACK_HERO.cta_primary,
+        cta_secondary: s.landing_hero_cta_secondary_text || FALLBACK_HERO.cta_secondary,
+      };
+      let parsedGalleryImages = FALLBACK_GALLERY.images;
+      try {
+        const raw = s.landing_gallery_images;
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) parsedGalleryImages = parsed;
+        }
+      } catch { /* fallback remains */ }
+      gallery = {
+        title: s.landing_gallery_title || FALLBACK_GALLERY.title,
+        subtitle: s.landing_gallery_subtitle || FALLBACK_GALLERY.subtitle,
+        images: parsedGalleryImages,
+      };
+    }
   } catch (err) {
-    console.error("Gagal mengambil data kamar:", err);
+    console.error("Gagal mengambil data:", err);
   }
 
   return (
@@ -30,7 +83,7 @@ export default async function Home() {
         <section className="relative h-screen flex items-center justify-center pt-20 px-4 md:px-8 pb-4">
           <div className="relative w-full h-full rounded-[32px] overflow-hidden shadow-sm border border-black/5">
             <Image
-              src="https://picsum.photos/seed/hotelhero/1920/1080?blur=2"
+              src={hero.image_url}
               alt="Hotel Citycome Hero"
               fill
               className="object-cover absolute inset-0 z-0"
@@ -42,23 +95,23 @@ export default async function Home() {
             <div className="relative z-20 h-full w-full flex items-center justify-center">
               <div className="text-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
               <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl text-white font-bold leading-tight mb-6">
-                Simfoni <br className="hidden md:block" /> Kenyamanan
+                {hero.title}
               </h1>
               <p className="text-sm md:text-base text-white/80 mb-10 max-w-2xl mx-auto leading-relaxed">
-                Rasakan kemuliaan dan ketenangan yang tak tertandingi di Hotel Citycome. Liburan sempurna Anda dimulai di sini.
+                {hero.description}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
                   href="#book"
                   className="bg-white text-[#5A5A40] px-8 py-3 rounded-full text-xs font-bold tracking-widest uppercase hover:scale-105 transition-transform shadow-lg"
                 >
-                  Pesan Kamar
+                  {hero.cta_primary}
                 </Link>
                 <Link
                   href="#rooms"
                   className="bg-white/10 backdrop-blur-sm text-white border border-white/30 px-8 py-3 rounded-full text-xs font-bold tracking-widest uppercase hover:bg-white/20 transition-colors"
                 >
-                  Jelajahi Kamar
+                  {hero.cta_secondary}
                 </Link>
               </div>
               </div>
@@ -187,28 +240,38 @@ export default async function Home() {
         <section id="gallery" className="py-20 px-4 md:px-8 border-t border-black/5 bg-white">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="font-serif text-4xl md:text-5xl font-bold text-[#2d2d2a] mb-4">Galeri Kami</h2>
+              <h2 className="font-serif text-4xl md:text-5xl font-bold text-[#2d2d2a] mb-4">{gallery.title}</h2>
               <p className="text-sm text-gray-500 max-w-2xl mx-auto">
-                Intip sekilas keindahan dan kenyamanan yang menanti Anda di Hotel Citycome.
+                {gallery.subtitle}
               </p>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="md:col-span-2 md:row-span-2 relative aspect-square md:aspect-auto rounded-3xl overflow-hidden group">
-                <Image src="https://picsum.photos/seed/gallery1/800/800" alt="Lobby Hotel" fill className="object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
-              </div>
-              <div className="relative aspect-square rounded-3xl overflow-hidden group">
-                <Image src="https://picsum.photos/seed/gallery2/400/400" alt="Restaurant" fill className="object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
-              </div>
-              <div className="relative aspect-square rounded-3xl overflow-hidden group">
-                <Image src="https://picsum.photos/seed/gallery3/400/400" alt="Spa" fill className="object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
-              </div>
-              <div className="relative aspect-square rounded-3xl overflow-hidden group">
-                <Image src="https://picsum.photos/seed/gallery4/400/400" alt="Pool" fill className="object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
-              </div>
-              <div className="relative aspect-square rounded-3xl overflow-hidden group">
-                <Image src="https://picsum.photos/seed/gallery5/400/400" alt="Room View" fill className="object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
-              </div>
+              {gallery.images[0] && (
+                <div className="md:col-span-2 md:row-span-2 relative aspect-square md:aspect-auto rounded-3xl overflow-hidden group">
+                  <Image src={gallery.images[0]} alt="Galeri 1" fill className="object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
+                </div>
+              )}
+              {gallery.images[1] && (
+                <div className="relative aspect-square rounded-3xl overflow-hidden group">
+                  <Image src={gallery.images[1]} alt="Galeri 2" fill className="object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
+                </div>
+              )}
+              {gallery.images[2] && (
+                <div className="relative aspect-square rounded-3xl overflow-hidden group">
+                  <Image src={gallery.images[2]} alt="Galeri 3" fill className="object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
+                </div>
+              )}
+              {gallery.images[3] && (
+                <div className="relative aspect-square rounded-3xl overflow-hidden group">
+                  <Image src={gallery.images[3]} alt="Galeri 4" fill className="object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
+                </div>
+              )}
+              {gallery.images[4] && (
+                <div className="relative aspect-square rounded-3xl overflow-hidden group">
+                  <Image src={gallery.images[4]} alt="Galeri 5" fill className="object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
+                </div>
+              )}
             </div>
           </div>
         </section>
