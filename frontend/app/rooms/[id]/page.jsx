@@ -19,12 +19,14 @@ export default async function RoomDetail({ params }) {
       room.features = typeof room.features === 'string' ? JSON.parse(room.features) : (room.features || []);
       // Mengisi field tambahan yang tidak ada di DB tapi dibutuhkan oleh UI
       room.gallery = [
-        `https://picsum.photos/seed/${roomId}1/800/600`,
-        `https://picsum.photos/seed/${roomId}2/800/600`,
+        "https://www.ketapangindahhotel.com/storage/app/uploads/public/5d1/a16/bf7/5d1a16bf71e05223571642.jpg",
+        "https://www.ketapangindahhotel.com/storage/app/uploads/public/5d1/a16/b21/5d1a16b216a14097469197.jpg",
       ];
       room.size = roomId === 'family' || roomId === 'presidential' ? "50+ m²" : "24-32 m²";
       room.occupancy = roomId === 'family' || roomId === 'presidential' ? "Keluarga/Grup" : "1-2 Dewasa";
-      room.image = room.image_url || `https://picsum.photos/seed/${roomId}/1920/1080?blur=1`;
+      room.image =
+        room.image_url ||
+        "https://www.ketapangindahhotel.com/storage/app/uploads/public/5d1/a16/bf7/5d1a16bf71e05223571642.jpg";
     }
   } catch (err) {
     console.error("Gagal mengambil detail kamar:", err);
