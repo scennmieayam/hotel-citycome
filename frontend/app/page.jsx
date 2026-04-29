@@ -6,6 +6,8 @@ import Link from "next/link";
 import { ArrowRight, Wifi, Coffee, MapPin, Wind } from "lucide-react";
 import { API_URL } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+
 const FALLBACK_HERO = {
   image_url: "https://picsum.photos/seed/hotelhero/1920/1080?blur=2",
   title: "Simfoni Kenyamanan",
